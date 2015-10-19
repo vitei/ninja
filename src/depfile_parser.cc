@@ -35,8 +35,11 @@ bool DepfileParser::Parse(string* content, string* err) {
   // parsing_targets: whether we are parsing targets or dependencies.
   char* in = &(*content)[0];
   char* end = in + content->size();
+  bool have_target = false;
+  bool have_other_target = false;
   bool parsing_targets = true;
   while (in < end) {
+    bool have_newline = false;
     // out: current output point (typically same as in, but can fall behind
     // as we de-escape backslashes).
     char* out = in;
@@ -45,6 +48,7 @@ bool DepfileParser::Parse(string* content, string* err) {
     for (;;) {
       // start: beginning of the current parsed span.
       const char* start = in;
+      char* yymarker = NULL;
       
     {
       unsigned char yych;
@@ -84,69 +88,67 @@ bool DepfileParser::Parse(string* content, string* err) {
       };
 
       yych = *in;
-      if (yych <= '=') {
-        if (yych <= '$') {
-          if (yych <= ' ') {
+      if (yych <= ':') {
+        if (yych <= ' ') {
+          if (yych <= '\n') {
             if (yych <= 0x00) goto yy7;
-            goto yy9;
+            if (yych <= '\t') goto yy12;
+            goto yy10;
           } else {
-            if (yych <= '!') goto yy5;
-            if (yych <= '#') goto yy9;
-            goto yy4;
+            if (yych == '\r') goto yy9;
+            goto yy12;
           }
         } else {
-          if (yych <= '*') {
-            if (yych <= '\'') goto yy9;
-            if (yych <= ')') goto yy5;
-            goto yy9;
+          if (yych <= '$') {
+            if (yych <= '!') goto yy5;
+            if (yych <= '#') goto yy12;
+            goto yy4;
           } else {
-            if (yych <= ':') goto yy5;
-            if (yych <= '<') goto yy9;
+            if (yych <= '\'') goto yy12;
+            if (yych == '*') goto yy12;
             goto yy5;
           }
         }
       } else {
-        if (yych <= '_') {
-          if (yych <= '[') {
-            if (yych <= '?') goto yy9;
-            if (yych <= 'Z') goto yy5;
-            goto yy9;
+        if (yych <= '^') {
+          if (yych <= '?') {
+            if (yych == '=') goto yy5;
+            goto yy12;
           } else {
-            if (yych <= '\\') goto yy2;
-            if (yych <= '^') goto yy9;
-            goto yy5;
+            if (yych <= 'Z') goto yy5;
+            if (yych != '\\') goto yy12;
           }
         } else {
-          if (yych <= '|') {
-            if (yych <= '`') goto yy9;
-            if (yych <= '{') goto yy5;
-            goto yy9;
+          if (yych <= '{') {
+            if (yych == '`') goto yy12;
+            goto yy5;
           } else {
-            if (yych == 0x7F) goto yy9;
+            if (yych <= '|') goto yy12;
+            if (yych == 0x7F) goto yy12;
             goto yy5;
           }
         }
       }
-yy2:
-      ++in;
-      if ((yych = *in) <= '"') {
+      yych = *(yymarker = ++in);
+      if (yych <= '"') {
         if (yych <= '\f') {
           if (yych <= 0x00) goto yy3;
-          if (yych != '\n') goto yy14;
+          if (yych == '\n') goto yy20;
+          goto yy22;
         } else {
-          if (yych <= '\r') goto yy3;
-          if (yych == ' ') goto yy16;
-          goto yy14;
+          if (yych <= '\r') goto yy18;
+          if (yych == ' ') goto yy24;
+          goto yy22;
         }
       } else {
         if (yych <= 'Z') {
-          if (yych <= '#') goto yy16;
-          if (yych == '*') goto yy16;
-          goto yy14;
+          if (yych <= '#') goto yy24;
+          if (yych == '*') goto yy24;
+          goto yy22;
         } else {
-          if (yych <= '\\') goto yy16;
-          if (yych == '|') goto yy16;
-          goto yy14;
+          if (yych <= '\\') goto yy24;
+          if (yych == '|') goto yy24;
+          goto yy22;
         }
       }
 yy3:
@@ -157,12 +159,12 @@ yy3:
       }
 yy4:
       yych = *++in;
-      if (yych == '$') goto yy12;
+      if (yych == '$') goto yy16;
       goto yy3;
 yy5:
       ++in;
       yych = *in;
-      goto yy11;
+      goto yy15;
 yy6:
       {
         // Got a span of plain text.
@@ -180,23 +182,49 @@ yy7:
       }
 yy9:
       yych = *++in;
+      if (yych == '\n') goto yy13;
       goto yy3;
 yy10:
       ++in;
-      yych = *in;
 yy11:
+      {
+        // A newline ends the current file name and the current rule.
+        have_newline = true;
+        break;
+      }
+yy12:
+      yych = *++in;
+      goto yy3;
+yy13:
+      yych = *++in;
+      goto yy11;
+yy14:
+      ++in;
+      yych = *in;
+yy15:
       if (yybm[0+yych] & 128) {
-        goto yy10;
+        goto yy14;
       }
       goto yy6;
-yy12:
+yy16:
       ++in;
       {
         // De-escape dollar character.
         *out++ = '$';
         continue;
       }
-yy14:
+yy18:
+      yych = *++in;
+      if (yych == '\n') goto yy20;
+      in = yymarker;
+      goto yy3;
+yy20:
+      ++in;
+      {
+        // A line continuation ends the current file name.
+        break;
+      }
+yy22:
       ++in;
       {
         // Let backslash before other characters through verbatim.
@@ -204,7 +232,7 @@ yy14:
         *out++ = yych;
         continue;
       }
-yy16:
+yy24:
       ++in;
       {
         // De-escape backslashed character.
@@ -220,21 +248,31 @@ yy16:
     if (len > 0 && filename[len - 1] == ':') {
       len--;  // Strip off trailing colon, if any.
       parsing_targets = false;
+      have_target = true;
+    }
+
+    if (have_newline) {
+      // A newline ends a rule so the next filename will be a new target.
+      parsing_targets = true;
+      have_other_target = false;
     }
 
     if (len == 0)
       continue;
 
     if (!is_target) {
+      if (have_other_target) {
+        *err = "depfile has multiple output paths";
+        return false;
+      }
       ins_.push_back(StringPiece(filename, len));
     } else if (!out_.str_) {
       out_ = StringPiece(filename, len);
     } else if (out_ != StringPiece(filename, len)) {
-      *err = "depfile has multiple output paths";
-      return false;
+      have_other_target = true;
     }
   }
-  if (parsing_targets) {
+  if (!have_target) {
     *err = "expected ':' in depfile";
     return false;
   }
