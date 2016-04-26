@@ -1,6 +1,7 @@
 module Ninja
   class Rule
     attr_reader :name,
+                :description,
                 :command,
                 :dependencies
 
@@ -8,6 +9,7 @@ module Ninja
       Description.validate!(desc)
 
       @name = desc[:name]
+      @description = desc[:description]
       @command = desc[:command]
       @dependencies = desc[:dependencies]
     end
@@ -18,6 +20,7 @@ module Ninja
         raise "Name not specified." unless desc.include?(:name)
          raise "Expected name to be a string composed of [a-Z,0-9,-,_] characters." unless /\A([-\w]+?)+\z/.match(desc[:name])
 
+        raise "Description not specified." unless desc.include?(:description)
         raise "Command not specified." unless desc.include?(:command)
          raise "Input not used by the command." unless desc[:command].include? '$in'
          raise "Output not used by the command." unless desc[:command].include? '$out'

@@ -16,7 +16,8 @@ module Ninja
     def rule(name, command, opts={})
       @rules.push(Ninja::Rule.new(:name => name,
                                   :command => command,
-                                  :dependencies => opts[:dependencies]))
+                                  :dependencies => opts[:dependencies],
+                                  :description => opts.fetch(:description, nil)))
     end
 
     def build(rule, outputs_to_inputs={})
@@ -53,6 +54,9 @@ module Ninja
 
         @rules.each do |rule|
           f.write "rule #{rule.name}\n"
+          if rule.description
+            f.write "  description = #{rule.description}\n"
+          end
           if rule.dependencies
             if (rule.dependencies == :gcc) or (rule.dependencies == :clang)
               f.write "  depfile = $out.d\n"
