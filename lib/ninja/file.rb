@@ -20,9 +20,12 @@ module Ninja
                                   :description => opts.fetch(:description, nil)))
     end
 
-    def build(rule, outputs_to_inputs={})
+    def build(rule, outputs_to_inputs, variables={})
       outputs_to_inputs.each do |output, inputs|
-        @builds.push(Ninja::Build.new(:rule => rule, :inputs => [*inputs], :output => output))
+        @builds.push(Ninja::Build.new(:rule => rule,
+                                      :inputs => [*inputs],
+                                      :output => output,
+                                      :variables => variables))
       end
     end
 
@@ -74,6 +77,10 @@ module Ninja
 
         @builds.each do |build|
           f.write "build #{build.output}: #{build.rule} #{build.inputs.join(' ')}\n"
+
+          build.variables.each do |name, value|
+            f.write "  #{name} = #{value}\n"
+          end
         end
 
         unless @defaults.empty?

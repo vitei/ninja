@@ -2,7 +2,8 @@ module Ninja
   class Build
     attr_reader :rule,
                 :inputs,
-                :output
+                :output,
+                :variables
 
     def initialize(desc={})
       Description.validate!(desc)
@@ -10,6 +11,7 @@ module Ninja
       @rule = desc[:rule]
       @inputs = [*desc[:inputs]]
       @output = desc[:output]
+      @variables = desc.fetch(:variables, {})
     end
 
     module Description #:nodoc:
@@ -24,6 +26,12 @@ module Ninja
         raise "Output not specified." unless desc.include?(:output)
          # TODO(mtwilliams): Check if paths exist.
          raise "Expected output to be a path." unless desc[:output].is_a?(String)
+
+         if desc.has_key?(:variables)
+           desc[:variables].each do |name, value|
+             raise "Expected name to be a string made of [a-Z,_,-,0-9] characters." unless /\w/.match(name)
+           end
+         end
       end
     end
   end
