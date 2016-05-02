@@ -1,6 +1,6 @@
 module Ninja
   module VERSION #:nodoc:
-    MAJOR, MINOR, PATCH, PRE = [0, 1, 5, 0]
+    MAJOR, MINOR, PATCH, PRE = [0, 1, 6, 0]
     STRING = [MAJOR, MINOR, PATCH, PRE].compact.join('.')
   end
 

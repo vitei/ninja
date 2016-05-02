@@ -20,12 +20,17 @@ module Ninja
                                   :description => opts.fetch(:description, nil)))
     end
 
-    def build(rule, outputs_to_inputs, variables={})
+    def build(rule, outputs_to_inputs, options={})
       outputs_to_inputs.each do |output, inputs|
-        @builds.push(Ninja::Build.new(:rule => rule,
-                                      :inputs => [*inputs],
-                                      :output => output,
-                                      :variables => variables))
+        parameters = { :rule => rule, :inputs => [*inputs], :output => output }
+
+        optional = [:variables, :implicit_deps, :order_only_deps]
+
+        options.find_all{|k,v| optional.include?(k) }.each do |field, value|
+          parameters[field] = value
+        end
+
+        @builds.push(Ninja::Build.new(parameters))
       end
     end
 
@@ -76,7 +81,17 @@ module Ninja
         end
 
         @builds.each do |build|
-          f.write "build #{build.output}: #{build.rule} #{build.inputs.join(' ')}\n"
+          f.write "build #{build.output}: #{build.rule} #{build.inputs.join(' ')}"
+
+          if ! build.implicit_deps.empty?
+            f.write " | #{build.implicit_deps.join(' ')}"
+          end
+
+          if ! build.order_only_deps.empty?
+            f.write " || #{build.order_only_deps.join(' ')}"
+          end
+
+          f.write "\n"
 
           build.variables.each do |name, value|
             f.write "  #{name} = #{value}\n"
