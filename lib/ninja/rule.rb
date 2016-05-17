@@ -22,7 +22,7 @@ module Ninja
 
         raise "Description not specified." unless desc.include?(:description)
         raise "Command not specified." unless desc.include?(:command)
-         raise "Input not used by the command." unless desc[:command].include? '$in'
+        # raise "Input not used by the command." unless desc[:command].include? '$in'
          raise "Output not used by the command." unless desc[:command].include? '$out'
 
         if desc[:dependencies]
