@@ -3,7 +3,9 @@ module Ninja
     attr_reader :name,
                 :description,
                 :command,
-                :dependencies
+                :dependencies,
+                :rspfile,
+                :rspfile_content
 
     def initialize(desc={})
       Description.validate!(desc)
@@ -12,6 +14,11 @@ module Ninja
       @description = desc[:description]
       @command = desc[:command]
       @dependencies = desc[:dependencies]
+
+      if desc.has_key?(:rspfile)
+        @rspfile = desc[:rspfile]
+        @rspfile_content = desc[:rspfile_content]
+      end
     end
 
     module Description #:nodoc:
@@ -25,7 +32,11 @@ module Ninja
         # raise "Input not used by the command." unless desc[:command].include? '$in'
          raise "Output not used by the command." unless desc[:command].include? '$out'
 
-        if desc[:dependencies]
+         if desc.has_key?(:rspfile)
+           raise "Response file contents undefined." unless desc.include?(:rspfile_content)
+         end
+
+         if desc[:dependencies]
           if desc[:dependencies].is_a?(String)
           elsif desc[:dependencies].is_a?(Symbol)
             raise "Unknown or unsupported dependency auto-detection method: '#{desc[:dependencies]}'." unless [:gcc, :clang, :msvc].include?(desc[:dependencies])

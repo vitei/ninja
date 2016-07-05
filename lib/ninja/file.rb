@@ -17,7 +17,9 @@ module Ninja
       @rules.push(Ninja::Rule.new(:name => name,
                                   :command => command,
                                   :dependencies => opts[:dependencies],
-                                  :description => opts.fetch(:description, nil)))
+                                  :description => opts.fetch(:description, nil),
+                                  :rspfile => opts.fetch(:rspfile, nil),
+                                  :rspfile_content => opts.fetch(:rspfile_content, nil)))
     end
 
     def build(rule, outputs_to_inputs, options={})
@@ -80,6 +82,12 @@ module Ninja
               f.write "  depfile = #{rule.dependencies}\n"
             end
           end
+
+          if rule.rspfile
+            f.write "  rspfile = #{rule.rspfile}\n"
+            f.write "  rspfile_content = #{rule.rspfile_content}\n"
+          end
+
           f.write "  command = #{rule.command}\n\n"
         end
 
