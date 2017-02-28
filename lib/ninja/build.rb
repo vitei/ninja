@@ -37,17 +37,13 @@ module Ninja
            end
          end
 
-         if desc.has_key?(:implicit_deps)
-           raise "Expected implicit dependencies." unless ! desc[:implicit_deps].empty?
-
+         if desc.has_key?(:implicit_deps) && (! desc[:implicit_deps].empty?)
            desc[:implicit_deps].each do |dep|
              raise "Expected implicit dependencies to be non-nil" unless dep != nil
            end
          end
 
-         if desc.has_key?(:order_only_deps)
-           raise "Expected order only dependencies." unless ! desc[:order_only_deps].empty?
-
+         if desc.has_key?(:order_only_deps) && (! desc[:order_only_deps].empty?)
            desc[:order_only_deps].each do |dep|
              raise "Expected order only dependencies to be non-nil" unless dep != nil
            end
